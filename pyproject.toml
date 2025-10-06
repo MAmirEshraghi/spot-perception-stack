@@ -1,0 +1,13 @@
+# pyproject.toml
+[project]
+name = "perception_pipeline"
+version = "0.1.0"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: marks tests as integration tests (potentially slow)",
+    "e2e: marks tests as end-to-end tests (very slow, requires data)",
+]

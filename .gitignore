@@ -1,0 +1,24 @@
+# === Python-related ignores ===
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg
+*.egg-info
+.DS_Store
+.env
+.ipynb_checkpoints/
+
+# === Project-specific folders ===
+# Ignore both data folders
+data/
+tests/data/
+
+# Ignore logs folder
+logs/
+
+# Ignore models folder
+models/
+
+# Ignore egg-info metadata folder
+perception_pipeline.egg-info/
