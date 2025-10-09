@@ -61,7 +61,7 @@ a new timestamped directory will be created in logs/perception_logs_offline/. Th
 
 - log.json: A structured JSON file with metadata for all images and unique objects.
 
-- performance_summary.txt: A human-readable report of the processing time for each stage.
+- performance_summary.txt: A report of the processing time for each stage.
 
 - frame_visualizations/: Images showing the detected objects in each processed frame.
 
@@ -70,7 +70,7 @@ a new timestamped directory will be created in logs/perception_logs_offline/. Th
 
 # (4) Testing Strategy
 
-This project implements three-level testing strategy based on the standard "Testing Pyramid":
+This project implements three-level testing strategy based on the standard "Testing Pyramid" using PyTest lib:
 
 
 ## Test Levels:
