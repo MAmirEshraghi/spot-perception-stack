@@ -4,6 +4,7 @@ from scipy.spatial.transform import Rotation as R
 import torch
 import time
 from typing import List
+from obs_data_buffer import depth_to_pointcloud
 
 
 #new method:
