@@ -37,62 +37,65 @@ def create_segmented_point_cloud(masks, depth_image, rgb_image, position, quater
     Creates a 3D point cloud where points are pre-colored by their mask ID.
     
     Returns:
-        A list of Open3D PointCloud objects, one for each input mask.
+        A list of dictionaries, each linking a PCD to its source mask and image.
     """
     H, W = depth_image.shape
     
     # 1) "Color Mask" Image 
-    color_mask_image = np.zeros((H, W, 3), dtype=np.uint8) # a blank image
-    
-    distinct_colors = generate_distinct_colors(len(masks)) # get unique colors for each mask
+    color_mask_image = np.zeros((H, W, 3), dtype=np.uint8)
+    distinct_colors = generate_distinct_colors(len(masks))
+
+    # Create a map to link colors back to their original mask
+    # for re-linking the 3D points to their 2D source
+    color_to_mask_map = {tuple(color): mask for color, mask in zip(distinct_colors, masks)}
 
     for i, mask in enumerate(masks):
-        color_mask_image[mask['segmentation']] = distinct_colors[i] # paint each mask area onto the blank img
+        color_mask_image[mask['segmentation']] = distinct_colors[i]
 
-    # 2) Create a single point cloud using the "Color Mask" 
-    full_pcd, _ = depth_to_pointcloud(      # call depth_to_pointcloud w generated color_mask_image
+    # 2) Create a single point cloud using the "Color Mask"
+    full_pcd, _ = depth_to_pointcloud(
         depth=depth_image,
         rgb=color_mask_image,  
         position=position,
         quaternion_xyzw=quaternion_xyzw
     )
+    if not full_pcd.has_points():
+        return []
 
-    # 2.1) filtering: ceiling and floor
+    # 2.1) Filtering: ceiling and floor
     points = np.asarray(full_pcd.points)
     filtering = (points[:,2] < 20) & (points[:,2] > 0.1)
     indices2keep = np.where(filtering)[0]
     full_pcd = full_pcd.select_by_index(indices2keep)
-
-
-    # 3) Extract individual objects by color
-    if not full_pcd.has_points(): #check
+    if not full_pcd.has_points():
         return []
 
-    # Get all points and their colors from the full point cloud
+    # 3) Extract individual objects by color
     points = np.asarray(full_pcd.points)
     colors = (np.asarray(full_pcd.colors) * 255).astype(np.uint8)
 
-    object_pcds = []
+    # The output list will store dictionaries
+    extracted_objects = []
     for color in distinct_colors:
-        # Find all points that match the current unique color
         target_color = np.array(color)
         indices = np.where(np.all(colors == target_color, axis=1))[0]
 
-        if len(indices) > 0:
-            object_points = points[indices] #selet points for this obj
-
-            # Create a new obj point cloud for this obj
-            obj_pcd = o3d.geometry.PointCloud() 
+        # Filter out objects that are too small
+        if len(indices) > 50:
+            object_points = points[indices]
+            obj_pcd = o3d.geometry.PointCloud()
             obj_pcd.points = o3d.utility.Vector3dVector(object_points)
             
-            # Give it the original color for visualization
-            obj_pcd.paint_uniform_color([c/255.0 for c in color])
+            # Package the PCD into a dictionary with its source info 
+            extracted_objects.append({  
+                "pcd": obj_pcd,
+                "source_mask": color_to_mask_map[tuple(color)],
+                "source_rgb": rgb_image
+            })
+            
+    return extracted_objects
 
-            object_pcds.append(obj_pcd)
-
-    return object_pcds
-
-
+    
 # old method, manual calculations
 def get_o3d_cam_intrinsic(height, width):
     """Returns the Open3D camera intrinsic object based on image size."""
