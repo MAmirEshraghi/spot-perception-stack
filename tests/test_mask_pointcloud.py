@@ -61,7 +61,7 @@ def main():
             quaternion_xyzw = np.array([orient['x'], orient['y'], orient['z'], orient['w']])
 
             # 1) call func to get all masks' point cloud
-            list_of_object_pcds = create_segmented_point_cloud(
+            extracted_objects  = create_segmented_point_cloud(
                 masks,
                 depth_image,
                 rgb_image,
@@ -69,13 +69,13 @@ def main():
                 quaternion_xyzw
             )
 
-            print(f"Found and extracted {len(list_of_object_pcds)} object point clouds.")
+            print(f"Found and extracted {len(extracted_objects)} object point clouds.")
 
             # 2) Merge them into a single PointCloud object
-               
-            for pcd in list_of_object_pcds:
-              
-                merged_masks_pcd += pcd  # Add each object's points to the main cloud
+            # Iterate through the list of dictionaries
+            for obj_dict in extracted_objects:
+                # Access the point cloud using the 'pcd' key
+                merged_masks_pcd += obj_dict['pcd']
 
 
         
