@@ -90,7 +90,7 @@ def calculate_point_cloud_coverage_torch(pcd1, pcd2, voxel_size=0.05):
     
     intersection_size = len(pcd1_voxels.intersection(pcd2_voxels))
     return intersection_size / len(pcd1_voxels)
-def mega_optimized_batch_coverage(query_pcd, pcd_list, voxel_size=0.05):
+def mega_optimized_batch_coverage(query_pcd, pcd_list, voxel_size=0.05, return_counts = False):
     """
     Fully batched with sparse operations - no loops at all.
     Uses scatter operations for aggregation.
@@ -158,7 +158,12 @@ def mega_optimized_batch_coverage(query_pcd, pcd_list, voxel_size=0.05):
     # Coverage = matching_voxels / query_voxels
     coverages = counts.float() / query_size
     
-    return coverages
+    if return_counts:
+        return counts.float(), coverages
+    else:
+        return coverages
+
+
 def mega_optimized_query_batch_coverage(query_pcd_list: List[torch.Tensor],
                                         pcd_list: List[torch.Tensor],
                                         voxel_size: float = 0.05) -> torch.Tensor:
