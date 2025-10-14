@@ -10,12 +10,13 @@ from src_perception.components.point_cloud import generate_distinct_colors as ge
 
 
 # CONFIGURATIONs
-
+#==================================================================
 DATA_PATH = "data/object_pcds.pkl"
 LOG_DIR = "logs"
 OUTPUT_LOG_PATH = os.path.join(LOG_DIR, "unique_objects_log.pkl")
-VOXEL_SIZE = 0.05
-COVERAGE_THRESHOLD = 0.5
+VOXEL_SIZE = 0.1
+COVERAGE_THRESHOLD = 0.25
+#==================================================================
 
 
 class InteractiveDeduplicator:
@@ -25,11 +26,11 @@ class InteractiveDeduplicator:
 
         # State variables
         self.unique_pcds = []
-        colors_int = generate_distinct_colors_int(500) # Generate 500 unique colors
+        colors_int = generate_distinct_colors_int(1000) # Generate 500 unique colors
         self.distinct_colors = [[c / 255.0 for c in color] for color in colors_int] # int(0-255) to floots (0.0-1.0) for Open3D
-        self.unique_colors = []
-        self.step_index = 0
-        self.is_processing = False
+        self.unique_colors = [] # ?
+        self.step_index = 0 # ?
+        self.is_processing = False # ?
         self.state_history = []  # to store previous states
 
         # Load and prepare data
@@ -50,6 +51,8 @@ class InteractiveDeduplicator:
         self.vis.add_geometry(coord_frame)
 
         print_initial_instructions()
+
+
 
     def _load_and_group_data(self):
         """Loads the object PCDs and groups them by image."""
@@ -80,9 +83,8 @@ class InteractiveDeduplicator:
             self.is_processing = False # Release lock
             return False
 
-        # Save the current state BEFORE processing the next step
+        # Save the current state BEFORE processing the next step (history for left array key)
         current_state = {
-            # Replace pcd.clone() with the correct Open3D copy constructor
             'pcds': [o3d.geometry.PointCloud(pcd) for pcd in self.unique_pcds],
             'colors': list(self.unique_colors), # Copy the list of colors
             'index': self.step_index
@@ -112,26 +114,28 @@ class InteractiveDeduplicator:
                 
                 print(f"    - Candidate {i}: Added as new unique object {len(self.unique_pcds) - 1}")
 
-        else: 
-            # For all subsequent images, perform the standard deduplication logic
+        # 3. Perform deduplication for each candidate
+        else:  
+            # For all subsequent images, do the standard deduplication logic
             candidate_tensors = [torch.from_numpy(pcd).to(self.device).float() for pcd in candidate_pcds_np]
             unique_tensors = [torch.from_numpy(np.asarray(pcd.points)).to(self.device).float() for pcd in self.unique_pcds]
             
-            # 3. Perform deduplication for each candidate
+            
             for i, candidate_tensor in enumerate(candidate_tensors):
                 # self.unique_pcds will always have items here because of the first step
-                coverages = mega_optimized_batch_coverage(candidate_tensor, unique_tensors, VOXEL_SIZE)
-                best_match_score = torch.max(coverages).item() if len(coverages) > 0 else 0.0
+                counts, coverages = mega_optimized_batch_coverage(candidate_tensor, unique_tensors, VOXEL_SIZE, return_counts=True)
+                best_match_percentage = torch.max(coverages).item() if len(coverages) > 0 else 0.0
+                best_match_count = torch.max(counts).item() if len(coverages) > 0 else 0.0
 
-                if best_match_score > COVERAGE_THRESHOLD:
+                if best_match_percentage > COVERAGE_THRESHOLD or best_match_count>5:
                     best_match_idx = torch.argmax(coverages).item()
                     
                     # Merge the point clouds
                     candidate_o3d = o3d.geometry.PointCloud()
                     candidate_o3d.points = o3d.utility.Vector3dVector(candidate_tensor.cpu().numpy())
-                    self.unique_pcds[best_match_idx] += candidate_o3d
+                    self.unique_pcds[best_match_idx] += candidate_o3d  #merging by add the point to existing obj
                     
-                    print(f"    - Candidate {i}: Matched and merged with unique object {best_match_idx} (Score: {best_match_score:.2f})")
+                    print(f"    - Candidate {i}: Matched and merged with unique object {best_match_idx} (Score: {best_match_percentage:.2f})")
                 else:
                     # Add as a new unique object
                     new_pcd = o3d.geometry.PointCloud()
@@ -181,7 +185,7 @@ class InteractiveDeduplicator:
         # You can optionally re-save the log file here if you want it to reflect the backward step
         self._save_state() 
         self.is_processing = False
-        
+
         return True
 
     def _update_visualizer(self, vis):
@@ -230,16 +234,15 @@ class InteractiveDeduplicator:
         self.vis.destroy_window()
 
 def print_initial_instructions():
-    """Prints instructions to the console at the start."""
     print("\n" + "*"*60)
-    print("      🚀 Interactive Deduplication Viewer Initialized 🚀")
+    print("      Interactive Deduplication Viewer Initialized ")
     print("*"*60)
     print("Controls:")
     print("  - Focus the Open3D window.")
     print("  - Press the [->] (Right Arrow) key to process the next image.")
+    print("  - Press the [<-] (Left Arrow) key to show the previous image.")
     print("  - Pan/Rotate/Zoom with the mouse to inspect the scene.")
     print("  - Press [Q] to quit.")
-    print("\nLogs for each step will appear here in the terminal.")
     print("*"*60 + "\n")
 
 
