@@ -31,7 +31,8 @@ def generate_distinct_colors(n):
         
         colors.append((int(r*255), int(g*255), int(b*255)))
     return colors
-# hard-coded filtering inside func:
+
+# NOTICE: hard-coded filtering inside func:
 def create_segmented_point_cloud(masks, depth_image, rgb_image, position, quaternion_xyzw):
     """
     Creates a 3D point cloud where points are pre-colored by their mask ID.
