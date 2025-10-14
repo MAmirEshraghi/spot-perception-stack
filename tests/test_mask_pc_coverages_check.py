@@ -92,7 +92,7 @@ def mega_optimized_batch_coverage(query_pcd, pcd_list, voxel_size=0.05):
 
 
 def main():
-    # --- 1. SETUP AND INITIALIZATION ---
+    # 1. SETUP AND INITIALIZATION ---
     # Use GPU if available
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
@@ -108,7 +108,7 @@ def main():
     sam.to(device)
     mask_generator = SamAutomaticMaskGenerator(model=sam, min_mask_region_area=1000)
 
-    # --- 2. MAIN DATA STRUCTURE FOR TRACKING UNIQUE OBJECTS ---
+    # 2. MAIN DATA STRUCTURE FOR TRACKING UNIQUE OBJECTS ---
     # This list will store the point cloud for each unique object we find.
     unique_object_pcds = []
     
@@ -140,7 +140,7 @@ def main():
             )
             print(f"  > Found {len(candidate_pcds)} potential objects in view '{rgb_name}'.")
 
-            # --- 3. DEDUPLICATION LOGIC ---
+            # 3. DEDUPLICATION LOGIC 
             for candidate in candidate_pcds:
                 # If this is the first object ever found, it's automatically unique
                 if not unique_object_pcds:
@@ -166,7 +166,7 @@ def main():
                     unique_object_pcds.append(candidate)
                     print(f"    -> New unique object {len(unique_object_pcds)-1} found.")
 
-    # --- 4. FINAL VISUALIZATION AFTER DEDUPLICATION ---
+    # 4. FINAL VISUALIZATION AFTER DEDUPLICATION ---
     print(f"\n--- Total Unique Objects Found: {len(unique_object_pcds)} ---")
 
     # Create a list of PCDs to visualize, coloring each unique object differently
