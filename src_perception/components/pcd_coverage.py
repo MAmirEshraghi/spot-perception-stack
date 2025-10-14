@@ -205,12 +205,15 @@ def mega_optimized_query_batch_coverage(query_pcd_list: List[torch.Tensor],
 
     def _build_concatenated_point_cloud(pcd_list_inner):
         all_pcds_inner, cloud_ids_inner = [], []
+        
         for i, pcd in enumerate(pcd_list_inner):
             if pcd is not None and pcd.numel() > 0:
                 all_pcds_inner.append(pcd)
                 cloud_ids_inner.append(torch.full((len(pcd),), i, device=device, dtype=torch.long))
+        
         if len(all_pcds_inner) == 0:
             return None, None
+        
         return torch.cat(all_pcds_inner, dim=0), torch.cat(cloud_ids_inner, dim=0)
 
     def _compute_query_hashes_and_union(queries, vs):
@@ -223,10 +226,14 @@ def mega_optimized_query_batch_coverage(query_pcd_list: List[torch.Tensor],
         if int((per_query_sizes > 0).sum().item()) == 0:
             return per_query_hashes, per_query_sizes, None
         union_list = [h for h in per_query_hashes if h is not None and h.numel() > 0]
+        if not union_list:
+            return per_query_hashes, per_query_sizes, None
         return per_query_hashes, per_query_sizes, torch.unique(torch.cat(union_list, dim=0))
 
     def _filter_and_dedup_ref_pairs(all_points_inner, all_cloud_ids_inner, query_union_inner, vs):
         ref_hashes, _ = _compute_point_cloud_hashes(all_points_inner, vs, unique=False)
+        if ref_hashes is None:
+            return None
         ref_match = torch.isin(ref_hashes, query_union_inner)
         if not ref_match.any():
             return None
