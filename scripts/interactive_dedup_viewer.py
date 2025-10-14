@@ -30,6 +30,7 @@ class InteractiveDeduplicator:
         self.unique_colors = []
         self.step_index = 0
         self.is_processing = False
+        self.state_history = []  # to store previous states
 
         # Load and prepare data
         self.step_data, self.step_keys = self._load_and_group_data()
@@ -38,8 +39,11 @@ class InteractiveDeduplicator:
         self.vis = o3d.visualization.VisualizerWithKeyCallback()
         self.vis.create_window("Interactive Deduplication Viewer | Press [->] to advance", 1280, 720)
         
-        # KEY_RIGHT = 262
+        # KEY_RIGHT = 262  # ->
         self.vis.register_key_callback(262, self.process_next_step)
+        # KEY_LEFT = 263  # <-
+        self.vis.register_key_callback(263, self.process_previous_step) # Register the new backward function
+        
         
         # Add a coordinate frame for reference
         coord_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1.0, origin=[0, 0, 0])
@@ -70,10 +74,20 @@ class InteractiveDeduplicator:
         if self.is_processing:
             return False
         self.is_processing = True
+        
         if self.step_index >= len(self.step_keys):
             print("\n--- All images processed. No more steps. ---")
             self.is_processing = False # Release lock
             return False
+
+        # Save the current state BEFORE processing the next step
+        current_state = {
+            # Replace pcd.clone() with the correct Open3D copy constructor
+            'pcds': [o3d.geometry.PointCloud(pcd) for pcd in self.unique_pcds],
+            'colors': list(self.unique_colors), # Copy the list of colors
+            'index': self.step_index
+        }
+        self.state_history.append(current_state)
 
         # 1. Get candidate objects for the current step
         current_key = self.step_keys[self.step_index]
@@ -139,6 +153,37 @@ class InteractiveDeduplicator:
 
         return True
         
+    def process_previous_step(self, vis):
+        """Reverts the scene to the previously saved state."""
+        
+        if self.is_processing:
+            return False
+        self.is_processing = True
+        
+        # Check if there is any history to go back to
+        if not self.state_history:
+            print("\n--- At the beginning. Cannot go back further. ---")
+            return False
+            
+        print(f"\n{'<--'*20}\nGoing back to the previous step...\n{'<--'*20}")
+        
+        # Pop the last state from the history
+        last_state = self.state_history.pop()
+        
+        # Restore the state variables
+        self.unique_pcds = last_state['pcds']
+        self.unique_colors = last_state['colors']
+        self.step_index = last_state['index']
+        
+        # Update the visualizer to show the restored scene
+        self._update_visualizer(vis)
+        
+        # You can optionally re-save the log file here if you want it to reflect the backward step
+        self._save_state() 
+        self.is_processing = False
+        
+        return True
+
     def _update_visualizer(self, vis):
         """Clears and redraws all unique objects with their persistent colors."""
         
