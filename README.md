@@ -56,22 +56,23 @@ wget -O models/sam_vit_l_0b3195.pth https://dl.fbaipublicfiles.com/segment_anyth
 
 #### 1. Generate Sample Data
 
-If you don't have an obs_buffer.pkl file, you can create a sample one using create_sample_data.py. This script loads a full data buffer and creates a smaller, sampled version.
-
-Bash
+If you don't have an `obs_buffer.pkl` file, you can create a sample one using `create_sample_data.py`. This script loads a full data buffer and creates a smaller, sampled version.
 
 
+```
 python scripts/create_sample_data.py
+```
 
 
-This will generate tests/data/sample_obs_buffer.pkl (or similar, depending on configuration within the script). You might need to adjust FULL_DATA_PATH in create_sample_data.py if your source data is elsewhere.
+This will `generate tests/data/sample_obs_buffer.pkl` (or similar, depending on configuration within the script). You might need to adjust `FULL_DATA_PATH` in `create_sample_data.py` if your source data is elsewhere.
 
 #### 2. Generate Object Point Clouds
 
 This script processes the observation data, applies SAM to segment objects, and generates 3D point clouds for each detected object. The results are saved to `data/object_pcds.pkl.`
 
 
-```python scripts/generate_object_pointclouds.py
+```
+python scripts/generate_object_pointclouds.py
 ```
 
 Note: Ensure `SAM_CHECKPOINT_PATH` and `BUFFER_PATH` are correctly configured in `generate_object_pointclouds.py` before running.
@@ -81,7 +82,8 @@ Note: Ensure `SAM_CHECKPOINT_PATH` and `BUFFER_PATH` are correctly configured in
 The `object_library.py` script is the main entry point for the deduplication process. It loads the generated object point clouds, adds them to the `ObjectLibrary`, performs deduplication, and saves the unique objects.
 
 
-```python scripts/object_library.py
+```
+python scripts/object_library.py
 ```
 
 This script will output `logs/object_library/unique_objects.pkl` containing the deduplicated set of unique 3D objects.
