@@ -2,6 +2,9 @@
 
 This repository contains a perception pipeline focused on the efficient management and deduplication of 3D object point clouds. The core functionality revolves around identifying and merging similar objects detected across various frames and camera views, aiming to build a library of unique 3D objects. It leverages advanced techniques for point cloud processing and utilizes the Segment Anything Model (SAM) for object mask generation.
 
+[![Watch the demo on YouTube](https://img.youtube.com/vi/SizqEv7UecE/0.jpg)](https://youtu.be/SizqEv7UecE)
+
+
 ```
 perception_tiamat_drail-develop-seg_dedup/
 ├── .coverage
