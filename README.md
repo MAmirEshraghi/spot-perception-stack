@@ -67,7 +67,17 @@ This repository focuses on the **perception and vision-grounding stack** for an 
   - `development.md` – guidance for extending and organizing the code.
 
 ---
+## Media
 
+### Spot cameras views plus obj detections
+![Spot camera views](/docs/images/spot_cameras.gif)
+
+![Spot camera views](/docs/images/sys_obj_grounding.png)
+![Spot camera views](/docs/images/sys_realtime.png)
+![Spot camera views](/docs/images/system_arch.png)
+![Spot camera views](/docs/images/vis_result.png)
+
+---
 ## Getting started
 
 For a quick, practical introduction:
