@@ -1,110 +1,159 @@
-# Perception repository for DRAIL_tiamat
+## Spot Robot Perception – Vision Grounding
 
-# (1) Offline Perception Pipeline
+This repository contains the **perception and vision-grounding stack** for an embodied AI agent running on a quadruped robot (Boston Dynamics Spot) in household-like environments (e.g. Habitat simulation).
 
-containing a Object Grounding pipeline for processing pre-recorded robotic sensor data. It uses the Segment Anything Model (SAM) to identify objects in RGB images, projects them into 3D space using depth data, and employs a de-duplication algorithm to track unique objects across multiple frames. A Vision-Language Model (VLM) is used to generate descriptions for each unique object discovered. The final output is a structured log directory containing all metadata, visualizations, and detailed performance reports.
+The goal of this codebase is to turn raw **RGB‑D sensor data** into a **3D object library** and **world map** that can be used by planning, control, and language modules to perform tasks like:
+- Discovering and mapping objects while exploring.
+- Understanding **what** each object is (semantic knowledge).
+- Knowing **where** each object is (spatial knowledge).
+- Building **3D point clouds** of objects from multiple views (geometric knowledge).
+- Enabling language-grounded behavior (e.g., “go to the red mug on the table”).
 
-# (2) Repository Structure
+---
 
-```
-perception_tiamat_DRAIL/
-├── data/                  # Raw input data (e.g., .pkl files)
-├── logs/                  # Default output directory for pipeline runs
-├── models/                # Storage for downloaded AI model checkpoints (e.g., SAM)
-├── scripts/               # Helper scripts (e.g., creating sample data)
-│
-├── src/
-│   ├── obs_data_buffer.py   # Data structures for handling sensor streams
-│   └── perception_pipeline/ # The core application logic as a Python package
-│       ├── ai_models.py
-│       ├── log_manager.py
-│       ├── point_cloud.py
-│       ├── reporting.py
-│       ├── run_pipeline.py  # Main entry point for the application
-│       └── visualization.py
-│
-└── tests/                   # All tests for the project
-    ├── data/                # Sample data for running tests
-    ├── test_ai_models.py
-    ├── test_benchmarks.py
-    ├── test_e2e_pipeline.py
-    ├── test_integration_pipeline.py
-    └── ... (other unit test files)
-```
-# (3) How to Use
+## Main components
 
-### a. Clone and install dependencies:
+- **Real-time ROS2 node**
+  - `src/vision_grounding/z_sensor_object_map_node.py`  
+    Maintains a **live point cloud map** and **ObjectLibrary** from streaming RGB‑D + odometry:
+    - Subscribes to sensor topics.
+    - Calls the perception pipeline to detect, segment, and localize objects.
+    - Logs maps and object data for later analysis and visualization.
 
-```
-pip install -e .
-```
-### b. Sample command to run
+- **Offline perception pipeline**
+  - `src/vision_grounding/object_detection_pipeline2.py`  
+    Processes **recorded observation buffers** into:
+    - `all_objects.json`: a rich object database with semantic + spatial metadata.
+    - `all_points.ply`: a full scene point cloud.
+    - Uses a Vision-Language Model, YOLO‑World, FastSAM, and depth to detect and ground objects.
 
-```
-python -m src.perception_pipeline.run_pipeline /
-    -p "tests/data/sample_obs_buffer.pkl" /
-    -s "models/sam_vit_l_0b3195.pth" /
-    -v "HuggingFaceTB/SmolVLM-256M-Instruct" /
-    -d "cuda" /
-    -l 40 /
-    --centroid_threshold 300 /
-    --coverage_threshold 0.60 /
-    --voxel_size 1.5 /
-    --min_mask_area 100 /
-    --kdtree_radius 0.1 /
+---
 
-```
+## Repository structure (perception-focused)
 
-### c. Output:
+- **`src/vision_grounding/`**
+  - `z_sensor_object_map_node.py` – ROS2 sensor mapping + object grounding node.
+  - `object_detection_pipeline2.py` – main object detection & 3D grounding pipeline.
+  - `obs_data_buffer.py` – observation buffer, camera geometry, depth → point cloud.
+  - `vlm_interface.py` – interface to the Vision-Language Model.
+  - `fast_sam_helper2.py` – FastSAM segmentation utilities.
+  - `pcd_coverage.py` – point cloud coverage analysis.
+  - `deduplicate_objects_by_label*.py` – object/detection deduplication.
+  - `visualization/` – scripts to visualize detections, objects, and point clouds.
+  - `playground/` – experimental and debug scripts (e.g. alternative SAM helpers).
 
-a new timestamped directory will be created in logs/perception_logs_offline/. This directory contains the complete output, including:
+- **`src/utils/`**
+  - `bbox_utils.py` – bounding box utilities (IoU, transforms, etc.).
+  - `plotters.py` – plotting helpers (maps, poses, RGB‑D collages).
+  - `ros_utils.py` – ROS-related helpers (e.g., quaternions, time).
+  - `session_logger.py` – run/session logging to `logs/current_run_outputs/...`.
+  - `func_utils.py` – small generic helpers (timing, etc.).
 
-- log.json: A structured JSON file with metadata for all images and unique objects.
+- **`docs/`**
+  - `overview.md` – high-level description of the perception stack.
+  - `quickstart.md` – how to run the offline pipeline and ROS2 node.
+  - `nodes_and_pipelines.md` – details of the main nodes and pipelines.
+  - `development.md` – guidance for extending and organizing the code.
 
-- performance_summary.txt: A report of the processing time for each stage.
+---
 
-- frame_visualizations/: Images showing the detected objects in each processed frame.
+## Getting started
 
-- timing_analysis/: Detailed raw timing data and plots.
+For a quick, practical introduction:
 
+- See **`docs/quickstart.md`** for:
+  - Setting up the environment (Python, GPU, key dependencies).
+  - Running the **offline object detection pipeline**.
+  - Running the **real-time ROS2 sensor mapping node**.
+  - Basic visualization of outputs.
 
-# (4) Testing Strategy
+For more context on how everything fits together, read:
 
-This project implements three-level testing strategy based on the standard "Testing Pyramid" using PyTest lib:
+- **`docs/overview.md`** – what the perception stack does and how it fits into the broader embodied agent.
+- **`docs/nodes_and_pipelines.md`** – details of `z_sensor_object_map_node.py` and `object_detection_pipeline2.py`.
 
+---
 
-## Test Levels:
+## Status and scope
 
-1. End-to-End (tests/test_e2e_pipeline.py): Runs the main script as a subprocess and asserts that all expected output files (logs, visualizations) are created correctly.
+This repo focuses on the **perception / grounding layer** of the overall Spot embodied agent.  
+Other parts of the full system (e.g., high-level planning, navigation, language interfaces) are designed to sit on top of the **object library** and **world map** produced here, and may live in separate repositories or be added in future work.## Spot Robot Perception – Vision Grounding
 
-2. Integration Tests (tests/test_integration_pipeline.py): Tests the data handoff between modules, like ensuring the mask format from SAM works as a valid input for the point cloud extraction logic.
+This repository contains the **perception and vision-grounding stack** for an embodied AI agent running on a quadruped robot (Boston Dynamics Spot) in household-like environments (e.g. Habitat simulation).
 
-3. Unit Tests (tests/test_*.py): Includes tests for mathematical correctness (test_point_cloud.py), data structure management (test_obs_data_buffer.py) and etc.
+The goal of this codebase is to turn raw **RGB‑D sensor data** into a **3D object library** and **world map** that can be used by planning, control, and language modules to perform tasks like:
+- Discovering and mapping objects while exploring.
+- Understanding **what** each object is (semantic knowledge).
+- Knowing **where** each object is (spatial knowledge).
+- Building **3D point clouds** of objects from multiple views (geometric knowledge).
+- Enabling language-grounded behavior (e.g., “go to the red mug on the table”).
 
-4. Performance Benchmarking (tests/test_benchmarks.py): This provides statistical analysis of the speed of critical functions.
+---
 
-## How to Run
+## Main components
 
-```
-export SAM_CHECKPOINT_PATH="models/sam_vit_l_0b3195.pth"
+- **Real-time ROS2 node**
+  - `src/vision_grounding/z_sensor_object_map_node.py`  
+    Maintains a **live point cloud map** and **ObjectLibrary** from streaming RGB‑D + odometry:
+    - Subscribes to sensor topics.
+    - Calls the perception pipeline to detect, segment, and localize objects.
+    - Logs maps and object data for later analysis and visualization.
 
-# run all tests:
-pytest -v  
+- **Offline perception pipeline**
+  - `src/vision_grounding/object_detection_pipeline2.py`  
+    Processes **recorded observation buffers** into:
+    - `all_objects.json`: a rich object database with semantic + spatial metadata.
+    - `all_points.ply`: a full scene point cloud.
+    - Uses a Vision-Language Model, YOLO‑World, FastSAM, and depth to detect and ground objects.
 
-# run all tests with a code coverage report
-pytest -v --cov=src  
+---
 
-# run ONLY fast unit tests
-pytest -v -m "not integration and not e2e" 
+## Repository structure (perception-focused)
 
-# run only integration
-pytest -v -m "integration"  
+- **`src/vision_grounding/`**
+  - `z_sensor_object_map_node.py` – ROS2 sensor mapping + object grounding node.
+  - `object_detection_pipeline2.py` – main object detection & 3D grounding pipeline.
+  - `obs_data_buffer.py` – observation buffer, camera geometry, depth → point cloud.
+  - `vlm_interface.py` – interface to the Vision-Language Model.
+  - `fast_sam_helper2.py` – FastSAM segmentation utilities.
+  - `pcd_coverage.py` – point cloud coverage analysis.
+  - `deduplicate_objects_by_label*.py` – object/detection deduplication.
+  - `visualization/` – scripts to visualize detections, objects, and point clouds.
+  - `playground/` – experimental and debug scripts (e.g. alternative SAM helpers).
 
-# run only e2e
-pytest -v -m "e2e"   
+- **`src/utils/`**
+  - `bbox_utils.py` – bounding box utilities (IoU, transforms, etc.).
+  - `plotters.py` – plotting helpers (maps, poses, RGB‑D collages).
+  - `ros_utils.py` – ROS-related helpers (e.g., quaternions, time).
+  - `session_logger.py` – run/session logging to `logs/current_run_outputs/...`.
+  - `func_utils.py` – small generic helpers (timing, etc.).
 
-# run only performance benchmarks
-pytest --benchmark-only 
+- **`docs/`**
+  - `overview.md` – high-level description of the perception stack.
+  - `quickstart.md` – how to run the offline pipeline and ROS2 node.
+  - `nodes_and_pipelines.md` – details of the main nodes and pipelines.
+  - `development.md` – guidance for extending and organizing the code.
 
+---
 
-```
+## Getting started
+
+For a quick, practical introduction:
+
+- See **`docs/quickstart.md`** for:
+  - Setting up the environment (Python, GPU, key dependencies).
+  - Running the **offline object detection pipeline**.
+  - Running the **real-time ROS2 sensor mapping node**.
+  - Basic visualization of outputs.
+
+For more context on how everything fits together, read:
+
+- **`docs/overview.md`** – what the perception stack does and how it fits into the broader embodied agent.
+- **`docs/nodes_and_pipelines.md`** – details of `z_sensor_object_map_node.py` and `object_detection_pipeline2.py`.
+
+---
+
+## Status and scope
+
+This repo focuses on the **perception / grounding layer** of the overall Spot embodied agent.  
+Other parts of the full system (e.g., high-level planning, navigation, language interfaces) are designed to sit on top of the **object library** and **world map** produced here, and may live in separate repositories or be added in future work.
