@@ -21,6 +21,8 @@ This repository focuses on the **perception and vision-grounding stack** for an 
   - Build **3D point clouds** of objects from multiple views (geometric knowledge).
   - Enable language-grounded behavior (e.g., “go to the red mug on the table”).
 
+![Spot perception stack overview](/docs/images/overview.png)
+
 ---
 
 ## Main components
@@ -52,7 +54,7 @@ This repository focuses on the **perception and vision-grounding stack** for an 
   - `deduplicate_objects_by_label*.py` – object/detection deduplication.
   - `visualization/` – scripts to visualize detections, objects, and point clouds.
   - `playground/` – experimental and debug scripts (e.g. alternative SAM helpers).
-- `**src/utils/**`
+- `**src/utils/`**
   - `bbox_utils.py` – bounding box utilities (IoU, transforms, etc.).
   - `plotters.py` – plotting helpers (maps, poses, RGB‑D collages).
   - `ros_utils.py` – ROS-related helpers (e.g., quaternions, time).
@@ -79,7 +81,7 @@ For a quick, practical introduction:
 For more context on how everything fits together, read:
 
 - `**docs/overview.md`** – what the perception stack does and how it fits into the broader embodied agent.
-- `**docs/nodes_and_pipelines.md**` – details of `z_sensor_object_map_node.py` and `object_detection_pipeline2.py`.
+- `**docs/nodes_and_pipelines.md`** – details of `z_sensor_object_map_node.py` and `object_detection_pipeline2.py`.
 
 ---
 
